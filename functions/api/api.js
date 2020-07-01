@@ -34,15 +34,15 @@ exports.handler = async (event) => {
     };
   }
 
-  let credentials = {
-    data: {
-      attributes: {
-        email: PAYMONGO_EMAIL,
-        password: PAYMONGO_PASS,
-      },
-    },
-  };
   const getApiToken = async () => {
+    let credentials = {
+      data: {
+        attributes: {
+          email: PAYMONGO_EMAIL,
+          password: PAYMONGO_PASS,
+        },
+      },
+    };
     try {
       const res = await axios({
         method: "post",
@@ -66,6 +66,49 @@ exports.handler = async (event) => {
     mop_details = null,
   } = JSON.parse(event.body);
 
+  let validationError = [];
+
+  if (!reference_no) {
+    let error = {
+      field: "reference_no",
+      message: "No Reference No Submitted",
+    };
+    validationError.push(error);
+  }
+
+  if (!message) {
+    let error = {
+      field: "message",
+      message: "No Message Submitted",
+    };
+    validationError.push(error);
+  }
+
+  if (!email) {
+    let error = {
+      field: "email",
+      message: "No Email Submitted",
+    };
+    validationError.push(error);
+  }
+
+  if (!mop) {
+    let error = {
+      field: "mop",
+      message: "No Mode Of Payment Submitted",
+    };
+    validationError.push(error);
+  }
+
+  if (!mop_details) {
+    let error = {
+      field: "mop_details",
+      message:
+        "No Payout Details Submitted",
+    };
+    validationError.push(error);
+  }
+
   const types = [
     "cancellation",
     "back_order",
@@ -76,7 +119,22 @@ exports.handler = async (event) => {
     "expired",
   ];
 
-  const getAmount = async () => {
+  if (!types.include(type)) {
+    let error = {
+      field: "type",
+      message: "Refund Type Submitted is Invalid!",
+    };
+    validationError.push(error);
+  }
+
+  if (validationError.length > 0) {
+    return {
+      statusCode: 422,
+      body: JSON.stringify({ errors: validationError }),
+    };
+  }
+
+  const getAmount = async (reference_no) => {
     let endpoint = `${URL}/${reference_no}?livemode=${PAYMONGO_LIVEMODE}`;
 
     const token = await getApiToken();
@@ -176,14 +234,9 @@ exports.handler = async (event) => {
       ]);
     }
 
-    const { currency, amount, date_paid, name, phone } = await getAmount();
-
-    if (!types.include(type)) {
-      return {
-        statusaCode: 500,
-        body: "Refund Type Not Found!",
-      };
-    }
+    const { currency, amount, date_paid, name, phone } = await getAmount(
+      reference_no
+    );
 
     let d = date_paid.getDate();
     let m = date_paid.getMonth();
