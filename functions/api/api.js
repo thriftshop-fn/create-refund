@@ -217,7 +217,6 @@ exports.handler = async (event) => {
     try {
       await refund_sheet.loadHeaderRow();
     } catch (e) {
-      await refund_sheet.updateProperties({ title: "Refunds" });
       await refund_sheet.setHeaderRow([
         "reference_no",
         "currency",
