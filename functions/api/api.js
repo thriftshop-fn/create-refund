@@ -119,7 +119,7 @@ exports.handler = async (event) => {
     "expired",
   ];
 
-  if (!types.include(type)) {
+  if (!types.includes(type)) {
     let error = {
       field: "type",
       message: "Refund Type Submitted is Invalid!",
