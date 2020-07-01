@@ -87,9 +87,29 @@ https://docs.google.com/spreadsheets/d/COPY-THIS-URL-SEGMENT/edit#gid=0
 
 - test http://localhost:8888/api in postman
 
+<details>
+  <summary>JSON PAYLOAD</summary>
+
+```json
+{
+    "reference_no": "dh5zPAn",
+    "message": "Unauthorized used of Credit Card",
+    "email": "juandelacruz@gmail.com",
+    "type": "cancellation",
+    "mop": "BDO",
+    "mop_details": "Account No: 12345"
+}
+```
+- reference_no is required , and must be PAID for a refund request to be created
+
+- message is required
+
+- email is required
+
+- type is required
+
 > *Types of Refund
 
-- Required Types
 ```js
 let types = [
       "cancellation",
@@ -102,18 +122,11 @@ let types = [
     ];
 ```
 
-> *Raw JSON PAYLOAD*
+- mop is required, is provided as frontend-matter on Hugo. **mode of payment is where client wants to received their refund**
 
-```json
-{
-    "reference_no": "dh5zPAn",
-    "message": "This is A Refund Request Message",
-    "email": "juandelacruz@gmail.com",
-    "type": "cancellation",
-    "mop": "BDO",
-    "mop_details": "BDO-ACCOUNT-NO"
-}
-```
+- mop_details is required
+
+</details>
 
 ## Deploy
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/thriftshop-fn/create-refund)
