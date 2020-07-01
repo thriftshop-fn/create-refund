@@ -111,7 +111,7 @@ let types = [
     "email": "juandelacruz@gmail.com",
     "type": "cancellation",
     "mop": "BDO",
-    "mop_details: "BDO-ACCOUNT-NO"
+    "mop_details": "BDO-ACCOUNT-NO"
 }
 ```
 

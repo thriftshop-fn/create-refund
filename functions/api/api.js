@@ -57,6 +57,25 @@ exports.handler = async (event) => {
     }
   };
 
+  const {
+    reference_no = null,
+    message = null,
+    email = null,
+    type = "cancellation",
+    mop = null,
+    mop_details = null,
+  } = JSON.parse(event.body);
+
+  const types = [
+    "cancellation",
+    "back_order",
+    "defective",
+    "deceptive",
+    "counterfeit",
+    "missing",
+    "expired",
+  ];
+
   const getAmount = async () => {
     let endpoint = `${URL}/${reference_no}?livemode=${PAYMONGO_LIVEMODE}`;
 
@@ -156,25 +175,6 @@ exports.handler = async (event) => {
         "remarks",
       ]);
     }
-
-    const {
-      reference_no = null,
-      message = null,
-      email = null,
-      type = "cancellation",
-      mop = null,
-      mop_details = null,
-    } = JSON.parse(event.body);
-
-    let types = [
-      "cancellation",
-      "back_order",
-      "defective",
-      "deceptive",
-      "counterfeit",
-      "missing",
-      "expired",
-    ];
 
     const { currency, amount, date_paid, name, phone } = await getAmount();
 
