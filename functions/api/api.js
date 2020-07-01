@@ -109,7 +109,7 @@ exports.handler = async (event) => {
     validationError.push(error);
   }
 
-  const types = [
+  let types = [
     "cancellation",
     "back_order",
     "defective",
