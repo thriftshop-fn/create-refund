@@ -3,6 +3,7 @@ if (!process.env.NETLIFY) {
 }
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const axios = require("axios");
+const AWS = require("aws-sdk");
 
 const {
   GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -29,7 +30,6 @@ if (!PAYMONGO_LIVEMODE) throw new Error("No PAYMONGO_LIVEMODE env var set");
 
 const URL = "https://gateway.paymongo.com/transactions";
 const AUTH_URI = "https://gateway.paymongo.com/auth";
-const AWS = require("aws-sdk");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
