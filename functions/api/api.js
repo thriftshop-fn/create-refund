@@ -11,6 +11,11 @@ const {
   PAYMONGO_EMAIL,
   PAYMONGO_PASS,
   PAYMONGO_LIVEMODE,
+  PAYMONGO_MERCHANT_NAME,
+  SES_ACCESS_KEY,
+  SES_SECRET_KEY,
+  SES_REGION,
+  REFUND_POLICY_HRS,
 } = process.env;
 
 if (!GOOGLE_SERVICE_ACCOUNT_EMAIL)
@@ -24,6 +29,7 @@ if (!PAYMONGO_LIVEMODE) throw new Error("No PAYMONGO_LIVEMODE env var set");
 
 const URL = "https://gateway.paymongo.com/transactions";
 const AUTH_URI = "https://gateway.paymongo.com/auth";
+const AWS = require("aws-sdk");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -103,8 +109,7 @@ exports.handler = async (event) => {
   if (!mop_details) {
     let error = {
       field: "mop_details",
-      message:
-        "No Payout Details Submitted",
+      message: "No Payout Details Submitted",
     };
     validationError.push(error);
   }
@@ -166,10 +171,11 @@ exports.handler = async (event) => {
 
     let payment_details = attributes.payments[paymentIndex];
 
-    const { currency, net_amount, paid_at, billing } = payment_details;
+    const { id, currency, net_amount, paid_at, billing } = payment_details;
 
     const { name, email, phone } = billing;
     return {
+      payment_id: id,
       currency,
       amount: `${parseFloat(net_amount) / 100}`,
       date_paid: new Date(paid_at * 1000),
@@ -195,13 +201,15 @@ exports.handler = async (event) => {
       await doc.addSheet({
         headerValues: [
           "reference_no",
+          "payment_id",
           "currency",
           "amount",
           "refundable_until",
+          "type",
+          "mail_sent",
           "message",
           "email",
           "phone",
-          "type",
           "mop",
           "mop_details",
           "approved",
@@ -219,45 +227,151 @@ exports.handler = async (event) => {
     } catch (e) {
       await refund_sheet.setHeaderRow([
         "reference_no",
+        "payment_id",
         "currency",
         "amount",
         "refundable_until",
+        "type",
+        "mail_sent",
         "message",
         "email",
         "phone",
-        "type",
         "mop",
         "mop_details",
         "approved",
         "remarks",
       ]);
     }
+    const rows = await refund_sheet.getRows();
 
-    const { currency, amount, date_paid, name, phone } = await getAmount(
-      reference_no
-    );
+    const rowIndex = rows.findIndex((x) => x.reference_no == reference_no);
+
+    if (rowIndex > -1) {
+      let error = {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Refund Request Already Exist!" }),
+      };
+      return error;
+    }
+
+    const {
+      payment_id,
+      currency,
+      amount,
+      date_paid,
+      name,
+      phone,
+    } = await getAmount(reference_no);
 
     let d = date_paid.getDate();
     let m = date_paid.getMonth();
     let y = date_paid.getFullYear();
     let refundable_until = `${y}-${m}-${d}`;
 
-    let expiration_date = date_paid.setHours(date_paid.getHours() + 48);
-    if (new Date() <= expiration_date) {
-      console.log("create a mail function to send email to paymongo");
+    let expiration_date = date_paid.setHours(
+      date_paid.getHours() + parseInt(REFUND_POLICY_HRS)
+    );
+    // only sent this if we have configure AWS Keys and define a refund policy hrs
+    if (
+      SES_ACCESS_KEY &&
+      SES_SECRET_KEY &&
+      REFUND_POLICY_HRS &&
+      new Date() <= expiration_date
+    ) {
+      AWS.config.update({
+        accessKeyId: SES_ACCESS_KEY,
+        secretAccessKey: SES_SECRET_KEY,
+        region: SES_REGION,
+      });
+      let support = "support@paymongo.com";
+      const ses = new AWS.SES({ apiVersion: "2010-12-01" });
+      const params = {
+        Destination: {
+          ToAddresses: [support],
+        },
+        //   ConfigurationSetName: <<ConfigurationSetName>>,
+        Message: {
+          Body: {
+            Html: {
+              Charset: "UTF-8",
+              Data: `<html>
+                  <body>
+                    <p>Refund Request was generated automatically as per our  ${REFUND_POLICY_HRS}hrs Refund Policy</p>
+                    <p>We Have Listed Below The Necessary Details You Mandated for Refund Request</p><br />
+                    Client Name: ${name}
+                    <br /><br />
+                    Reference No: ${reference_no} <br /><br />
+                    Payment ID: ${payment_id} <br /><br />
+                    Amount To Be Refunded: ₱${amount} <br /><br />
+                    Type Of Refund: ${type} <br /><br />
+                    Refund Reason Of Our Client:<br />
+                    <p>${message}</p> 
+                  </body>
+              </html>`,
+            },
+            Text: {
+              Charset: "UTF-8",
+              Data: "",
+            },
+          },
+          Subject: {
+            Charset: "UTF-8",
+            Data: `REFUND - ${PAYMONGO_MERCHANT_NAME}`,
+          },
+        },
+        Source: PAYMONGO_EMAIL,
+      };
+
+      return ses
+        .sendEmail(params)
+        .promise()
+        .then((data) => {
+          refund_sheet.addRow({
+            reference_no,
+            refundable_until,
+            type,
+            name,
+            phone,
+            message,
+            email,
+            currency,
+            amount,
+            mop,
+            mail_sent: "YES",
+            mop_details,
+          });
+          console.log("email submitted to SES", data);
+
+          return {
+            statusCode: 200,
+            body: JSON.stringify({
+              message:
+                "We have SENT mail to Paymongo, We Will Update You Once We Have Received Reply From Them",
+            }),
+          };
+        })
+        .catch((error) => {
+          console.log(error);
+          return {
+            statusCode: 500,
+            body: JSON.stringify({ error }),
+          };
+        });
     }
 
     await refund_sheet.addRow({
       reference_no,
+      payment_id,
       refundable_until,
+      type,
       name,
       phone,
       message,
       email,
       currency,
       amount,
-      type,
       mop,
+      mail_sent: "NO",
       mop_details,
     });
 

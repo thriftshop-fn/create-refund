@@ -7,12 +7,17 @@
 - edit .env
 
 ```toml
-GOOGLE_SERVICE_ACCOUNT_EMAIL=
-GOOGLE_PRIVATE_KEY=
-GOOGLE_SPREADSHEET_ID_FROM_URL=
 PAYMONGO_EMAIL=
 PAYMONGO_PASS=
 PAYMONGO_LIVEMODE=
+PAYMONGO_MERCHANT_NAME=
+REFUND_POLICY_HRS=48
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_SPREADSHEET_ID_FROM_URL=
+GOOGLE_PRIVATE_KEY=
+SES_ACCESS_KEY=
+SES_SECRET_KEY=
+SES_REGION=us-east-1
 ```
 
 <details>
@@ -79,6 +84,28 @@ https://docs.google.com/spreadsheets/d/COPY-THIS-URL-SEGMENT/edit#gid=0
 - Inside Your SpreadSheet ,Click Share Button , paste your GOOGLE_SERVICE_ACCOUNT_EMAIL
 
 ![share-to-google-email](https://user-images.githubusercontent.com/55337687/86082878-6858d100-bacb-11ea-93fc-0a40f2baf692.png)
+
+</details>
+
+
+<details>
+  <summary>Set Up Your Amazon SES Credentials</summary>
+
+    - TODO!
+
+</details>
+
+<details>
+  <summary>Sending Mail on Development</summary>
+
+    - TODO!
+
+</details>
+
+<details>
+  <summary>Increase SES Sending Limit for Production</summary>
+
+    - TODO!
 
 </details>
 
